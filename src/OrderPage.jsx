@@ -39,14 +39,21 @@ export default function OrderPage() {
 
     if (!data) return;
 
-    // Sort drinks with "classic matcha latte" first
+    // Sort drinks: Classic first, then by availability, then alphabetically
     const sortedDrinks = data.sort((a, b) => {
       const aIsClassic = a.name.toLowerCase().includes("classic matcha latte");
       const bIsClassic = b.name.toLowerCase().includes("classic matcha latte");
 
+      // Classic matcha latte always first
       if (aIsClassic && !bIsClassic) return -1;
       if (!aIsClassic && bIsClassic) return 1;
-      return 0;
+
+      // Then by availability (available before unavailable)
+      if (a.is_available && !b.is_available) return -1;
+      if (!a.is_available && b.is_available) return 1;
+
+      // Then alphabetically
+      return a.name.localeCompare(b.name);
     });
     setDrinks(sortedDrinks);
   }
