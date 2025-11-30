@@ -39,20 +39,26 @@ export default function OrderPage() {
 
     if (!data) return;
 
-    // Sort drinks: Classic first, then by availability, then alphabetically
+    // Sort drinks: Available first, then by custom order (miffy, melanie, boris)
+    const customOrder = ["miffy", "melanie", "boris"];
+    
     const sortedDrinks = data.sort((a, b) => {
-      const aIsClassic = a.name.toLowerCase().includes("classic matcha latte");
-      const bIsClassic = b.name.toLowerCase().includes("classic matcha latte");
-
-      // Classic matcha latte always first
-      if (aIsClassic && !bIsClassic) return -1;
-      if (!aIsClassic && bIsClassic) return 1;
-
-      // Then by availability (available before unavailable)
+      // First, sort by availability (available before unavailable)
       if (a.is_available && !b.is_available) return -1;
       if (!a.is_available && b.is_available) return 1;
 
-      // Then alphabetically
+      // Within same availability, sort by custom order
+      const aIndex = customOrder.findIndex(name => a.name.toLowerCase().includes(name));
+      const bIndex = customOrder.findIndex(name => b.name.toLowerCase().includes(name));
+      
+      // If both are in custom order, sort by that order
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      
+      // If only one is in custom order, prioritize it
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      
+      // Otherwise, sort alphabetically
       return a.name.localeCompare(b.name);
     });
     setDrinks(sortedDrinks);
