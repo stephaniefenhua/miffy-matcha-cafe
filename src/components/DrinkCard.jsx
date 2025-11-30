@@ -20,15 +20,6 @@ export default function DrinkCard({
 
   return (
     <div className={getCardClass()} onClick={onCardClick}>
-      {/* Sold Out Badge */}
-      {!drink.is_available && (
-        <div className="absolute top-3 right-3">
-          <span className="bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-            SOLD OUT
-          </span>
-        </div>
-      )}
-
       {/* Deselect Button */}
       {isSelected && drink.is_available && (
         <div className="absolute top-3 right-3">
@@ -65,14 +56,20 @@ export default function DrinkCard({
         </p>
       )}
 
-      {/* Size Badge */}
-      {isSelected && selectedSize && (
-        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
-          <span className="inline-block bg-green-700 text-white px-4 py-1 rounded-full text-xs font-bold">
-            {selectedSize}
+      {/* Size Badge or Sold Out Badge - both at bottom center */}
+      <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
+        {!drink.is_available ? (
+          <span className="inline-block bg-gray-500 text-white px-4 py-1 rounded-full text-xs font-bold">
+            SOLD OUT
           </span>
-        </div>
-      )}
+        ) : (
+          isSelected && selectedSize && (
+            <span className="inline-block bg-green-700 text-white px-4 py-1 rounded-full text-xs font-bold">
+              {selectedSize}
+            </span>
+          )
+        )}
+      </div>
     </div>
   );
 }

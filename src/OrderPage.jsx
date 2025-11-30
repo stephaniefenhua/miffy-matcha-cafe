@@ -154,7 +154,7 @@ export default function OrderPage() {
   }
 
   if (submitted) {
-    return <SuccessScreen onReset={resetForm} />;
+    return <SuccessScreen onReset={resetForm} customerName={name} />;
   }
 
   return (
@@ -181,15 +181,24 @@ export default function OrderPage() {
       <div className="relative z-10 flex flex-col items-center w-full">
         <h1 className={STYLES.heading}>miffy's matcha garden</h1>
 
-        <input
-          type="text"
-          placeholder="Your Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={50}
-          required
-          className={STYLES.input}
-        />
+        {/* Name Input with Order Status Button */}
+        <div className="flex flex-row gap-4 items-center justify-center mb-8 w-full max-w-4xl px-4">
+          <input
+            type="text"
+            placeholder="Your Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={50}
+            required
+            className="flex-1 max-w-xs p-3 border-4 border-gray-200 rounded-xl text-sm sm:text-lg bg-white focus:outline-none transition"
+          />
+          <a
+            href={`/status${name.trim() ? `?name=${encodeURIComponent(name.trim())}` : ""}`}
+            className="bg-green-700 text-white px-4 py-3 rounded-lg text-sm sm:text-lg font-semibold hover:bg-green-800 transition-all shadow-lg hover:shadow-xl text-center whitespace-nowrap"
+          >
+            see order status
+          </a>
+        </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl mb-6">
         {drinks.map((drink) => (
