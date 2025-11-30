@@ -553,8 +553,14 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Logout Button */}
-        <div className="mt-12 flex justify-center">
+        {/* Navigation and Logout Buttons */}
+        <div className="mt-12 flex justify-center gap-4">
+          <a
+            href="/"
+            className="bg-green-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-800 transition-all shadow-lg hover:shadow-xl"
+          >
+            back to order page
+          </a>
           <button
             onClick={handleLogout}
             className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-all shadow-lg hover:shadow-xl"
