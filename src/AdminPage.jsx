@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [orders, setOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
@@ -21,33 +23,41 @@ export default function AdminPage() {
     is_available: true,
   });
 
-  // Check if already authenticated on mount
+  // Check authentication on mount
   useEffect(() => {
-    const authStatus = localStorage.getItem("admin_authenticated");
-    if (authStatus === "true") {
-      setIsAuthenticated(true);
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Handle login
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
-    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    
-    if (password === correctPassword) {
-      setIsAuthenticated(true);
-      localStorage.setItem("admin_authenticated", "true");
-      setPassword("");
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
     } else {
-      alert("Incorrect password");
+      setEmail("");
       setPassword("");
     }
   }
 
   // Handle logout
-  function handleLogout() {
-    setIsAuthenticated(false);
-    localStorage.removeItem("admin_authenticated");
+  async function handleLogout() {
+    await supabase.auth.signOut();
   }
 
   // Format status for display
@@ -277,7 +287,7 @@ export default function AdminPage() {
 
   // Realtime updates
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!user) return;
 
     loadOrders();
     loadAllOrders();
@@ -308,22 +318,40 @@ export default function AdminPage() {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(drinksChannel);
     };
-  }, [isAuthenticated]);
+  }, [user]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="text-2xl text-gray-600">loading...</div>
+      </div>
+    );
+  }
 
   // Show login form if not authenticated
-  if (!isAuthenticated) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
           <h1 className="text-3xl font-bold text-green-900 mb-6 text-center">admin login</h1>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="email"
+              placeholder="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-4 border-4 border-gray-200 rounded-xl text-lg focus:outline-none focus:border-green-600 transition"
+              required
+              autoFocus
+            />
             <input
               type="password"
-              placeholder="enter password"
+              placeholder="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-4 border-4 border-gray-200 rounded-xl text-lg mb-4 focus:outline-none focus:border-green-600 transition"
-              autoFocus
+              className="w-full p-4 border-4 border-gray-200 rounded-xl text-lg focus:outline-none focus:border-green-600 transition"
+              required
             />
             <button
               type="submit"
