@@ -160,11 +160,20 @@ export default function AdminPage() {
     setDrinks(data || []);
   }
 
-  // Update order status
+  // Update order status with timestamps
   async function updateStatus(id, status) {
+    const updateData = { status };
+    
+    // Add timestamps based on status
+    if (status === ORDER_STATUS.IN_PROGRESS) {
+      updateData.started_at = new Date().toISOString();
+    } else if (status === ORDER_STATUS.COMPLETE) {
+      updateData.completed_at = new Date().toISOString();
+    }
+    
     const { error } = await supabase
       .from("orders")
-      .update({ status })
+      .update(updateData)
       .eq("id", id);
     
     if (error) {
