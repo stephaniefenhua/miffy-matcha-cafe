@@ -171,7 +171,7 @@ export default function OrderPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4 relative">
+    <div className="min-h-screen flex flex-col relative">
       {/* Background Miffy Pattern */}
       <div
         className="fixed inset-0 pointer-events-none"
@@ -190,28 +190,32 @@ export default function OrderPage() {
         }}
       />
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center w-full">
-        <h1 className={STYLES.heading}>miffy's matcha garden</h1>
-
-        {/* Name Input with Order Status Button */}
-        <div className="flex flex-row gap-4 items-center justify-center mb-8 w-full max-w-4xl px-4">
-          <input
-            type="text"
-            placeholder="Your Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={50}
-            required
-            className="flex-1 max-w-xs p-3 border-4 border-gray-200 rounded-xl text-sm sm:text-lg bg-white focus:outline-none transition"
-          />
-          <a
-            href={`/status${name.trim() ? `?name=${encodeURIComponent(name.trim())}` : ""}`}
-            className="bg-green-700 text-white px-4 py-3 rounded-lg text-sm sm:text-lg font-semibold hover:bg-green-800 transition-all shadow-lg hover:shadow-xl text-center whitespace-nowrap"
-          >
-            see order status
-          </a>
+      {/* Header Bar - Flush with top and sides */}
+      <div 
+        className="relative z-10 w-full py-2 shadow-md"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(90deg, rgba(220, 252, 231, 0.9) 0px, rgba(220, 252, 231, 0.9) 20px, rgba(255, 255, 255, 0.9) 20px, rgba(255, 255, 255, 0.9) 40px)',
+        }}
+      >
+        <div className="flex items-center justify-center gap-3">
+          <img src="/MiffyBig.svg" alt="Miffy" className="w-12 h-12" />
+          <h1 className="text-3xl font-bold text-green-900">miffy's matcha garden</h1>
         </div>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center w-full px-4 py-8">
+
+        {/* Name Input */}
+        <input
+          type="text"
+          placeholder="Your Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={50}
+          required
+          className={STYLES.input}
+        />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl mb-6">
         {drinks.map((drink) => (
@@ -229,13 +233,21 @@ export default function OrderPage() {
         ))}
       </div>
 
-      <Button
-        onClick={submitOrder}
-        disabled={!name || !selectedDrink || !selectedSize}
-        className="px-8 py-3 text-lg"
-      >
-        Submit
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+        <Button
+          onClick={submitOrder}
+          disabled={!name || !selectedDrink || !selectedSize}
+          className="px-8 py-3 text-lg"
+        >
+          Submit
+        </Button>
+        <a
+          href={`/status${name.trim() ? `?name=${encodeURIComponent(name.trim())}` : ""}`}
+          className=" bg-white/90 text-green-700 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-50 transition-all shadow-lg hover:shadow-xl text-center whitespace-nowrap"
+        >
+          see order status
+        </a>
+      </div>
 
       {/* Size Selection Modal */}
       {showModal && modalDrink && (
