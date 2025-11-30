@@ -13,12 +13,30 @@ const STYLES = {
     h2: "text-2xl font-bold text-green-800",
     h3: "text-xl font-bold text-gray-800",
   },
+  table: {
+    header: "px-6 py-3 text-left text-sm font-semibold text-gray-700",
+    cell: "px-6 py-4 text-gray-800",
+    cellSecondary: "px-6 py-4 text-gray-600",
+    cellSmall: "px-6 py-4 text-gray-600 text-sm",
+  },
 };
 
 // Utility Functions
 const handleError = (error, message) => {
   console.error(message, error);
   alert(`${message}. Check console for details.`);
+};
+
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 };
 
 export default function AdminPage() {
@@ -536,22 +554,26 @@ export default function AdminPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b-2 border-gray-200">
                     <tr>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Order</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Size</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                      <th className={STYLES.table.header}>Name</th>
+                      <th className={STYLES.table.header}>Order</th>
+                      <th className={STYLES.table.header}>Size</th>
+                      <th className={STYLES.table.header}>Created</th>
+                      <th className={STYLES.table.header}>Started</th>
+                      <th className={STYLES.table.header}>Completed</th>
+                      <th className={STYLES.table.header}>Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {allOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-gray-800">{order.customer_name}</td>
-                        <td className="px-6 py-4 text-gray-800">{order.drinks.name}</td>
-                        <td className="px-6 py-4 text-gray-600">{order.size || '-'}</td>
+                        <td className={STYLES.table.cell}>{order.customer_name}</td>
+                        <td className={STYLES.table.cell}>{order.drinks.name}</td>
+                        <td className={STYLES.table.cellSecondary}>{order.size || "-"}</td>
+                        <td className={STYLES.table.cellSmall}>{formatTimestamp(order.created_at)}</td>
+                        <td className={STYLES.table.cellSmall}>{formatTimestamp(order.started_at)}</td>
+                        <td className={STYLES.table.cellSmall}>{formatTimestamp(order.completed_at)}</td>
                         <td className="px-6 py-4">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[order.status] || STATUS_STYLES[ORDER_STATUS.COMPLETE]}`}>
-                            {formatStatus(order.status)}
-                          </span>
+                          <StatusBadge status={order.status} className="text-xs" />
                         </td>
                       </tr>
                     ))}
