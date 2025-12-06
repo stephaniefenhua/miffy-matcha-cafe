@@ -45,6 +45,9 @@ export default function AdminPage() {
   const [orders, setOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
   const [drinks, setDrinks] = useState([]);
+  const [approvedUsers, setApprovedUsers] = useState([]);
+  const [newUserName, setNewUserName] = useState("");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
   const [showAddDrink, setShowAddDrink] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editModalDrink, setEditModalDrink] = useState(null);
@@ -176,6 +179,58 @@ export default function AdminPage() {
     setDrinks(data || []);
   }
 
+  // Load approved users
+  async function loadUsers() {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .order("name", { ascending: true });
+    
+    if (error) {
+      handleError(error, "Error loading users");
+      return;
+    }
+    setApprovedUsers(data || []);
+  }
+
+  // Add new user
+  async function addUser() {
+    if (!newUserName.trim()) {
+      alert("Please enter a name");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("users")
+      .insert({ name: newUserName.trim() });
+
+    if (error) {
+      if (error.code === "23505") {
+        alert("This name already exists!");
+      } else {
+        handleError(error, "Failed to add user");
+      }
+      return;
+    }
+
+    setNewUserName("");
+    loadUsers();
+  }
+
+  // Delete user
+  async function deleteUser(id) {
+    if (!confirm("Are you sure you want to remove this user?")) return;
+
+    const { error } = await supabase.from("users").delete().eq("id", id);
+
+    if (error) {
+      handleError(error, "Failed to delete user");
+      return;
+    }
+
+    loadUsers();
+  }
+
   // Update order status with timestamps
   async function updateStatus(id, status) {
     const updateData = { status };
@@ -294,6 +349,7 @@ export default function AdminPage() {
     loadOrders();
     loadAllOrders();
     loadDrinks();
+    loadUsers();
 
     const ordersChannel = supabase
       .channel("orders-admin")
@@ -316,9 +372,19 @@ export default function AdminPage() {
       )
       .subscribe();
 
+    const usersChannel = supabase
+      .channel("users-admin")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        () => loadUsers()
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(drinksChannel);
+      supabase.removeChannel(usersChannel);
     };
   }, [user]);
 
@@ -528,6 +594,83 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Manage Users Section */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-green-800 mb-6">Manage Customers</h2>
+          
+          {/* Search and Add User - Full Width */}
+          <div className="flex gap-4 mb-6 items-center w-full">
+            <input
+              type="text"
+              placeholder="🔍 search name"
+              value={userSearchQuery}
+              onChange={(e) => setUserSearchQuery(e.target.value)}
+              className="p-3 border-4 border-gray-200 rounded-xl text-lg bg-white focus:outline-none transition flex-1"
+            />
+            <input
+              type="text"
+              placeholder="enter name to add"
+              value={newUserName}
+              onChange={(e) => setNewUserName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addUser()}
+              className="p-3 border-4 border-gray-200 rounded-xl text-lg bg-white focus:outline-none transition flex-1"
+            />
+            <button
+              onClick={addUser}
+              className="bg-green-700 text-white w-12 h-12 rounded-xl text-2xl font-bold hover:bg-green-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Users List */}
+          <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
+            {approvedUsers.length === 0 ? (
+              <p className="text-center text-gray-600 p-6">No approved users yet.</p>
+            ) : (
+              <>
+                <table className="w-full table-fixed">
+                  <thead className="bg-gray-50 border-b-2 border-gray-200">
+                    <tr>
+                      <th className={`${STYLES.table.header} w-3/4`}>Name</th>
+                      <th className={`${STYLES.table.header} w-1/4`}>Actions</th>
+                    </tr>
+                  </thead>
+                </table>
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full table-fixed">
+                    <tbody className="divide-y divide-gray-200">
+                      {approvedUsers
+                        .filter((u) =>
+                          u.name.toLowerCase().includes(userSearchQuery.toLowerCase())
+                        )
+                        .map((u) => (
+                          <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                            <td className={`${STYLES.table.cell} w-3/4`}>{u.name}</td>
+                            <td className="px-6 py-4 w-1/4">
+                              <button
+                                onClick={() => deleteUser(u.id)}
+                                className="text-red-600 hover:text-red-800 font-semibold transition-colors"
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+                {userSearchQuery && approvedUsers.filter((u) =>
+                  u.name.toLowerCase().includes(userSearchQuery.toLowerCase())
+                ).length === 0 && (
+                  <p className="text-center text-gray-500 py-4">No users found matching "{userSearchQuery}"</p>
+                )}
+              </>
+            )}
+          </div>
+          <p className="text-sm text-gray-500 mt-2">{approvedUsers.length} total users</p>
         </div>
 
         {/* All Orders Section */}

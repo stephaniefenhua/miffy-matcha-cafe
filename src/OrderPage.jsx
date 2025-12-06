@@ -5,36 +5,6 @@ import DrinkCard from "./components/DrinkCard";
 import SizeSelectionModal from "./components/SizeSelectionModal";
 import SuccessScreen from "./components/SuccessScreen";
 
-// Approved names list - only these names can place orders
-const APPROVED_NAMES = [
-  "Aamir",
-  "Albert",
-  "Alex",
-  "Amanda",
-  "Annie",
-  "Aryan",
-  "Atishay",
-  "Bryan",
-  "Dana",
-  "Daniel",
-  "Harrison",
-  "Isha",
-  "Jared",
-  "Kish",
-  "Luke",
-  "Lynn",
-  "Manya",
-  "Nina",
-  "Rafa",
-  "Rahil",
-  "Rahul",
-  "Sebastian",
-  "Sid",
-  "Tony",
-  "Tiffany",
-  "Vedant",
-];
-
 // Constants
 const STYLES = {
   input: "p-3 border-4 border-gray-200 rounded-xl w-full max-w-sm text-lg bg-white focus:outline-none transition",
@@ -49,6 +19,7 @@ const handleError = (error, message) => {
 
 export default function OrderPage() {
   const [drinks, setDrinks] = useState([]);
+  const [approvedNames, setApprovedNames] = useState([]);
   const [name, setName] = useState("");
   const [selectedDrink, setSelectedDrink] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -62,15 +33,32 @@ export default function OrderPage() {
 
   // Filter approved names based on input
   const filteredNames = name.trim()
-    ? APPROVED_NAMES.filter((n) =>
+    ? approvedNames.filter((n) =>
         n.toLowerCase().startsWith(name.toLowerCase().trim())
       )
-    : APPROVED_NAMES;
+    : approvedNames;
 
   // Check if the entered name is in the approved list
-  const isNameApproved = APPROVED_NAMES.some(
+  const isNameApproved = approvedNames.some(
     (n) => n.toLowerCase() === name.toLowerCase().trim()
   );
+
+  // Load approved users from database
+  async function loadApprovedUsers() {
+    const { data, error } = await supabase
+      .from("users")
+      .select("name")
+      .order("name");
+
+    if (error) {
+      console.error("Error loading users:", error);
+      return;
+    }
+
+    if (data) {
+      setApprovedNames(data.map((user) => user.name));
+    }
+  }
 
   // Load drinks with custom sorting
   async function loadDrinks() {
@@ -110,11 +98,13 @@ export default function OrderPage() {
 
   useEffect(() => {
     loadDrinks();
+    loadApprovedUsers();
 
-    // Real-time updates for drinks
+    // Real-time updates for drinks and users
     const channel = supabase
-      .channel("drinks-order-page")
+      .channel("order-page-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "drinks" }, loadDrinks)
+      .on("postgres_changes", { event: "*", schema: "public", table: "users" }, loadApprovedUsers)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
@@ -165,7 +155,7 @@ export default function OrderPage() {
     }
 
     // Find matching approved name (case-insensitive)
-    const matchedName = APPROVED_NAMES.find(
+    const matchedName = approvedNames.find(
       (n) => n.toLowerCase() === sanitized.toLowerCase()
     );
 

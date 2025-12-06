@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabaseClient";
 import Button from "./components/Button";
 import StatusBadge from "./components/StatusBadge";
@@ -33,9 +33,38 @@ export default function OrderStatusPage() {
   const [orders, setOrders] = useState([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [approvedNames, setApprovedNames] = useState([]);
+  const [showNameDropdown, setShowNameDropdown] = useState(false);
+  const nameInputRef = useRef(null);
+
+  // Filter approved names based on input
+  const filteredNames = name.trim()
+    ? approvedNames.filter((n) =>
+        n.toLowerCase().startsWith(name.toLowerCase().trim())
+      )
+    : approvedNames;
+
+  // Load approved users from database
+  async function loadApprovedUsers() {
+    const { data, error } = await supabase
+      .from("users")
+      .select("name")
+      .order("name");
+
+    if (error) {
+      console.error("Error loading users:", error);
+      return;
+    }
+
+    if (data) {
+      setApprovedNames(data.map((user) => user.name));
+    }
+  }
 
   // Check for name in URL parameters and auto-search
   useEffect(() => {
+    loadApprovedUsers();
+
     const params = new URLSearchParams(window.location.search);
     const nameFromUrl = params.get("name");
     
@@ -45,6 +74,14 @@ export default function OrderStatusPage() {
       searchOrdersByName(nameFromUrl);
     }
   }, []);
+
+  // Handle name selection from dropdown
+  function selectName(selectedName) {
+    setName(selectedName);
+    setShowNameDropdown(false);
+    // Auto-search when selecting from dropdown
+    searchOrdersByName(selectedName);
+  }
 
   // Real-time updates for orders
   useEffect(() => {
@@ -127,17 +164,44 @@ export default function OrderStatusPage() {
           </a>
         </div>
 
-        {/* Search Input */}
-        <div className="flex gap-4 mb-8 items-center">
-          <input
-            type="text"
-            placeholder="enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className={STYLES.input}
-            maxLength={50}
-          />
+        {/* Search Input with Dropdown */}
+        <div className="flex gap-4 mb-8 items-start">
+          <div className="relative w-full max-w-sm">
+            <input
+              ref={nameInputRef}
+              type="text"
+              placeholder="enter your name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setShowNameDropdown(true);
+              }}
+              onFocus={() => setShowNameDropdown(true)}
+              onBlur={() => {
+                // Delay to allow click on dropdown item
+                setTimeout(() => setShowNameDropdown(false), 150);
+              }}
+              onKeyPress={handleKeyPress}
+              className={STYLES.input}
+              maxLength={50}
+            />
+            
+            {/* Dropdown suggestions */}
+            {showNameDropdown && filteredNames.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
+                {filteredNames.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => selectName(n)}
+                    className="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <Button
             onClick={searchOrders}
             disabled={loading}
