@@ -1,13 +1,43 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabaseClient";
 import Button from "./components/Button";
 import DrinkCard from "./components/DrinkCard";
 import SizeSelectionModal from "./components/SizeSelectionModal";
 import SuccessScreen from "./components/SuccessScreen";
 
+// Approved names list - only these names can place orders
+const APPROVED_NAMES = [
+  "Aamir",
+  "Albert",
+  "Alex",
+  "Amanda",
+  "Annie",
+  "Aryan",
+  "Atishay",
+  "Bryan",
+  "Dana",
+  "Daniel",
+  "Harrison",
+  "Isha",
+  "Jared",
+  "Kish",
+  "Luke",
+  "Lynn",
+  "Manya",
+  "Nina",
+  "Rafa",
+  "Rahil",
+  "Rahul",
+  "Sebastian",
+  "Sid",
+  "Tony",
+  "Tiffany",
+  "Vedant",
+];
+
 // Constants
 const STYLES = {
-  input: "mb-8 p-3 border-4 border-gray-200 rounded-xl w-full max-w-sm text-lg bg-white focus:outline-none transition",
+  input: "p-3 border-4 border-gray-200 rounded-xl w-full max-w-sm text-lg bg-white focus:outline-none transition",
   heading: "text-3xl font-bold mb-6 text-green-900",
 };
 
@@ -27,6 +57,20 @@ export default function OrderPage() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
   const [modalDrink, setModalDrink] = useState(null);
+  const [showNameDropdown, setShowNameDropdown] = useState(false);
+  const nameInputRef = useRef(null);
+
+  // Filter approved names based on input
+  const filteredNames = name.trim()
+    ? APPROVED_NAMES.filter((n) =>
+        n.toLowerCase().startsWith(name.toLowerCase().trim())
+      )
+    : APPROVED_NAMES;
+
+  // Check if the entered name is in the approved list
+  const isNameApproved = APPROVED_NAMES.some(
+    (n) => n.toLowerCase() === name.toLowerCase().trim()
+  );
 
   // Load drinks with custom sorting
   async function loadDrinks() {
@@ -111,7 +155,7 @@ export default function OrderPage() {
     closeModal(false); // Don't clear the size when confirming
   }
 
-  // Validate customer name
+  // Validate customer name - must be in approved list
   function validateName(name) {
     const sanitized = name.trim();
 
@@ -120,12 +164,24 @@ export default function OrderPage() {
       return null;
     }
 
-    if (sanitized.length > 50) {
-      alert("Name is too long. Please keep it under 50 characters.");
+    // Find matching approved name (case-insensitive)
+    const matchedName = APPROVED_NAMES.find(
+      (n) => n.toLowerCase() === sanitized.toLowerCase()
+    );
+
+    if (!matchedName) {
+      alert("Sorry, your name is not on the guest list.");
       return null;
     }
 
-    return sanitized;
+    // Return the properly cased name from the approved list
+    return matchedName;
+  }
+
+  // Handle name selection from dropdown
+  function selectName(selectedName) {
+    setName(selectedName);
+    setShowNameDropdown(false);
   }
 
   // Submit order with validation
@@ -206,16 +262,50 @@ export default function OrderPage() {
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center w-full px-4 py-8">
 
-        {/* Name Input */}
-        <input
-          type="text"
-          placeholder="Your Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={50}
-          required
-          className={STYLES.input}
-        />
+        {/* Name Input with Autocomplete Dropdown */}
+        <div className="relative w-full max-w-sm mb-8">
+          <input
+            ref={nameInputRef}
+            type="text"
+            placeholder="your name"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setShowNameDropdown(true);
+            }}
+            onFocus={() => setShowNameDropdown(true)}
+            onBlur={() => {
+              // Delay to allow click on dropdown item
+              setTimeout(() => setShowNameDropdown(false), 150);
+            }}
+            maxLength={50}
+            required
+            className={STYLES.input}
+          />
+          
+          {/* Dropdown suggestions */}
+          {showNameDropdown && filteredNames.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
+              {filteredNames.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => selectName(n)}
+                  className="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* Validation indicator */}
+          {name.trim() && !isNameApproved && (
+            <p className="text-sm text-green-700 mt-2 text-center">
+              please select a name from the list
+            </p>
+          )}
+        </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl mb-6">
         {drinks.map((drink) => (
@@ -236,7 +326,7 @@ export default function OrderPage() {
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
         <Button
           onClick={submitOrder}
-          disabled={!name || !selectedDrink || !selectedSize}
+          disabled={!isNameApproved || !selectedDrink || !selectedSize}
           className="px-8 py-3 text-lg"
         >
           Submit
